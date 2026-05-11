@@ -1,0 +1,18 @@
+{
+  "short_name": "BassLog",
+  "name": "BassLog Pro: Michigan",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2972/2972185.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#000000",
+  "display": "standalone",
+  "scope": "./",
+  "theme_color": "#000000",
+  "description": "Professional GIS Fishing Tracker"
+}
