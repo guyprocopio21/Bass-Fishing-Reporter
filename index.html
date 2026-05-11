@@ -3,18 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BassLog Pro</title>
+    <title>Precision Bass</title>
 
-    <!-- Link to the manifest for "Official App" install -->
     <link rel="manifest" href="manifest.json">
-    
-    <!-- PWA / Mobile Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972185.png">
+    <link rel="icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
 
-    <!-- Frameworks -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -36,9 +33,8 @@
             height: 100vh;
         }
 
-        /* Full-width Map Header */
         #map { 
-            height: 35vh; 
+            height: 38vh; 
             width: 100%;
             border-bottom: 2px solid var(--primary);
             flex-shrink: 0;
@@ -56,14 +52,12 @@
         h2 { margin: 0; color: var(--primary); font-weight: 800; letter-spacing: -1px; }
         #status { font-size: 0.75rem; margin-bottom: 15px; font-weight: bold; }
 
-        /* Mobile-Optimized Inputs */
         input, select {
             background-color: var(--card-bg) !important;
             border: 1px solid #333 !important;
             color: white !important;
             height: 55px !important;
             border-radius: 12px !important;
-            font-size: 1rem !important;
         }
 
         .weight-grid {
@@ -73,12 +67,8 @@
             margin-bottom: 15px;
         }
 
-        .weight-grid input {
-            padding: 0 !important;
-            text-align: center;
-        }
+        .weight-grid input { padding: 0 !important; text-align: center; }
 
-        /* High-Contrast Action Button */
         #saveBtn {
             background-color: var(--primary) !important;
             border: none !important;
@@ -88,7 +78,6 @@
             border-radius: 16px !important;
             width: 100%;
             margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
         }
 
         label { font-size: 0.7rem; text-transform: uppercase; color: #888; margin-bottom: 4px; display: block; }
@@ -99,8 +88,8 @@
     <div id="map"></div>
 
     <div class="app-content">
-        <h2>BASSLOG PRO</h2>
-        <p id="status">🛰️ INITIALIZING GPS...</p>
+        <h2>PRECISION BASS</h2>
+        <p id="status">🛰️ INITIALIZING GEOSPATIAL LOCK...</p>
 
         <form id="fishForm">
             <label>Species</label>
@@ -134,7 +123,6 @@
         </form>
     </div>
 
-    <!-- Logic Layer -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -144,31 +132,24 @@
         const SB_KEY = 'YOUR_ANON_KEY_HERE'; // <--- PASTE YOUR KEY HERE
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-        // --- MAP & PINS ---
-        // Using Dark Matter tiles for that "Pro" feel
         const map = L.map('map', { zoomControl: false }).setView([44.3, -85.6], 7);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
         
         let coords = null;
         let marker = null;
-        const status = document.getElementById('status');
 
         function updatePosition(latlng, label) {
             coords = latlng;
             if (marker) marker.setLatLng(latlng);
             else marker = L.marker(latlng).addTo(map);
-            status.innerText = `📍 POSITION LOCKED: ${label}`;
-            status.style.color = "#2ecc71";
+            document.getElementById('status').innerText = `📍 POSITION LOCKED: ${label}`;
+            document.getElementById('status').style.color = "#2ecc71";
         }
 
-        // GPS Lock (watch: false to allow manual pin drops)
         map.locate({setView: true, watch: false, maxZoom: 16});
         map.on('locationfound', (e) => updatePosition(e.latlng, "GPS LIVE"));
-        
-        // Manual Pin Drop
         map.on('click', (e) => updatePosition(e.latlng, "MANUAL PIN"));
 
-        // --- SUBMIT ---
         document.getElementById('fishForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!coords) return alert("Waiting for location...");
@@ -202,12 +183,9 @@
             btn.disabled = false;
         });
 
-        // --- SERVICE WORKER REGISTRATION (For "Install" button) ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('SW Registered'))
-                .catch(err => console.log('SW Failed', err));
+                navigator.serviceWorker.register('sw.js');
             });
         }
     </script>
