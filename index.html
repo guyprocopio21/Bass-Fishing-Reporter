@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Michigan Bass Tracker</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body { padding: 20px; background-color: #11191f; }
+        
+        /* Side-by-Side Dashboard Layout */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        #map { 
+            height: 550px; 
+            border-radius: 10px; 
+            border: 2px solid #333;
+            z-index: 1;
+        }
+
+        .weight-inputs { 
+            display: grid; 
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 8px; 
+            margin-bottom: 1rem;
+        }
+
+        button { width: 100%; font-weight: bold; }
+
+        /* Mobile Responsive: Stack vertically on small screens */
+        @media (max-width: 900px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+            #map { height: 300px; order: -1; } /* Map moves to top on mobile */
+        }
+    </style>
+</head>
+<body>
+
+    <main class="container-fluid">
+        <header>
+            <h2>🎣 Bass Tracker Dashboard</h2>
+            <p id="status" style="font-size: 0.9rem;">Locating your position...</p>
+        </header>
+
+        <div class="dashboard-container">
+            <section class="form-area">
+                <form id="fishForm">
+                    <label for="species">Target Species</label>
+                    <input type="text" id="species" value="Largemouth Bass">
+
+                    <label>Tournament Weights (Top 5)</label>
+                    <div class="weight-inputs">
+                        <input type="number" id="w1" step="0.01" placeholder="0.0">
+                        <input type="number" id="w2" step="0.01" placeholder="0.0">
+                        <input type="number" id="w3" step="0.01" placeholder="0.0">
+                        <input type="number" id="w4" step="0.01" placeholder="0.0">
+                        <input type="number" id="w5" step="0.01" placeholder="0.0">
+                    </div>
+
+                    <div class="grid">
+                        <div>
+                            <label for="wTemp">Water Temp (°F)</label>
+                            <input type="number" id="wTemp" placeholder="68">
+                        </div>
+                        <div>
+                            <label for="clarity">Clarity</label>
+                            <select id="clarity">
+                                <option value="Clear">Clear</option>
+                                <option value="Stained">Stained</option>
+                                <option value="Muddy">Muddy</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="saveBtn" class="contrast">Save Catch Record</button>
+                </form>
+            </section>
+
+            <section class="map-area">
+                <div id="map"></div>
+            </section>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // --- CONFIGURATION (Add your info here) ---
+        const SB_URL = 'https://haychxjquixxuryfkaul.supabase.co'; 
+        const SB_KEY = 'YOUR_ANON_KEY_HERE';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- MAP INITIALIZATION ---
+        const map = L.map('map').setView([44.3, -85.6], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        
+        let coords = null;
+        const status = document.getElementById('status');
+
+        // Locate User
+        map.locate({setView: true, watch: true, maxZoom: 16});
+        map.on('locationfound', (e) => {
+            coords = e.latlng;
+            status.innerText = "📍 GPS Location Locked";
+            status.style.color = "#2ecc71";
+            L.marker(e.latlng).addTo(map).bindPopup("Current Position").openPopup();
+        });
+
+        // --- FORM SUBMIT LOGIC ---
+        document.getElementById('fishForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!coords) return alert("Waiting for GPS signal...");
+
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.innerText = "Syncing with Supabase...";
+
+            const weightArray = [
+                parseFloat(document.getElementById('w1').value || 0),
+                parseFloat(document.getElementById('w2').value || 0),
+                parseFloat(document.getElementById('w3').value || 0),
+                parseFloat(document.getElementById('w4').value || 0),
+                parseFloat(document.getElementById('w5').value || 0)
+            ];
+
+            // Auto-fetch weather
+            try {
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&current_weather=true`);
+                const weather = await weatherRes.json();
+
+                // Insert into Supabase
+                const { error } = await _supabase.from('reports').insert([{
+                    species: document.getElementById('species').value,
+                    weights: weightArray,
+                    water_temp: parseFloat(document.getElementById('wTemp').value),
+                    water_clarity: document.getElementById('clarity').value,
+                    air_temp: weather.current_weather.temperature,
+                    wind_speed: weather.current_weather.windspeed,
+                    location: `POINT(${coords.lng} ${coords.lat})`
+                }]);
+
+                if (error) {
+                    alert("Sync Error: " + error.message);
+                } else {
+                    alert("Catch Record Saved Successfully!");
+                    document.getElementById('fishForm').reset();
+                }
+            } catch (err) {
+                alert("Network Error: Check connection.");
+            }
+            
+            btn.disabled = false;
+            btn.innerText = "Save Catch Record";
+        });
+    </script>
+</body>
+</html>
